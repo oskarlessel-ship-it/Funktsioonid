@@ -1,0 +1,55 @@
+#!/bin/bash
+# =============================================================================
+# Autor:        Oskar Lessel
+# Skripti nimi: sha256summa
+# Ülesanne:     Arvutab ja kontrollib SHA-256 kontrollsummasid arhiividele.
+# =============================================================================
+
+BACKUP_DIR="${1:-$HOME/praks2/backup}"
+
+mkdir -p "$BACKUP_DIR"
+
+echo "=== SHA-256 kontrollsummad ($BACKUP_DIR) ==="
+echo "1) Arvuta uusima arhiivi summa"
+echo "2) Kontrolli ühte .sha256 faili"
+echo "3) Loo kõigi arhiivide checksums.txt ja kontrolli"
+echo "4) Välju"
+read -p "Vali (1-4): " valik
+
+case "$valik" in
+    1)
+        ARCHIVE=$(ls -1t "$BACKUP_DIR"/src_*.tar.zst 2>/dev/null | head -n1)
+        if [ -z "$ARCHIVE" ]; then
+            echo "Ühtegi src_*.tar.zst arhiivi ei leitud kaustas $BACKUP_DIR"
+            exit 1
+        fi
+        echo "Arvutan summa: $ARCHIVE"
+        sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
+        echo "Valmis:"
+        cat "$ARCHIVE.sha256"
+        ;;
+    2)
+        read -p "Sisesta .sha256 faili nimi: " SHA_FILE
+        if [ ! -f "$BACKUP_DIR/$SHA_FILE" ]; then
+            echo "Faili ei leitud."
+            exit 1
+        fi
+        cd "$BACKUP_DIR" || exit 1
+        sha256sum -c "$SHA_FILE"
+        ;;
+    3)
+        cd "$BACKUP_DIR" || exit 1
+        find . -maxdepth 1 -type f -name 'src_*.tar.*' -print0 | xargs -0 sha256sum > checksums.txt
+        echo "Loodud checksums.txt"
+        cat checksums.txt
+        echo
+        sha256sum -c checksums.txt
+        ;;
+    4)
+        exit 0
+        ;;
+    *)
+        echo "Vale valik."
+        exit 1
+        ;;
+esac
